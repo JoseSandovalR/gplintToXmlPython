@@ -21,7 +21,7 @@ for line in output:
         parts = line.split(' ', maxsplit=3)
         if len(parts) == 4:
             file_location, line_column, severity, message = parts
-            file_parts = file_location.split(' ')
+            file_parts = file_location.split(':')
             if len(file_parts) == 2:
                 file_path = file_parts[0].strip()
                 line_parts = line_column.split(':')
