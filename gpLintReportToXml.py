@@ -7,37 +7,38 @@ output_file = 'lint_output.txt'
 
 # Leer la salida de gplint desde el archivo
 with open(output_file, 'r') as file:
-    lines = file.readlines()
+    output = file.readlines()
 
 # Crear un informe XML básico
 root = Element('checkstyle')
 root.set('version', '4.3')
 
-# Variables para guardar información del archivo actual
-current_file = None
-
-# Iterar sobre las líneas del archivo
-for line in lines:
+# Asumir que cada línea es un problema
+for line in output:
     line = line.strip()
-    if not line:
-        continue
+    if line:
+        # Dividir la línea en partes: ruta_archivo, linea:columna, severidad, mensaje
+        parts = line.split(' ', maxsplit=3)
+        if len(parts) == 4:
+            file_location, line_column, severity, message = parts
+            file_parts = file_location.split('/')
+            if len(file_parts) > 0:
+                file_name = file_parts[-1]
+                line_parts = line_column.split(':')
+                if len(line_parts) == 2:
+                    line, column = line_parts
+                else:
+                    line = line_parts[0]
+                    column = '0'
 
-    # Si la línea comienza con "<file name=", crear un nuevo elemento "file"
-    if line.startswith("<file name="):
-        file_name = line.split('"')[1]
-        current_file = SubElement(root, 'file')
-        current_file.set('name', file_name)
-        continue
-
-    # Asumir que la línea tiene el formato "<error line=" línea " column=" columna " severity=" nivel " message=" mensaje " source="gplint"/>"
-    parts = line.split('"')
-    if len(parts) == 11:
-        error = SubElement(current_file, 'error')
-        error.set('line', parts[3].strip())
-        error.set('column', parts[7].strip())
-        error.set('severity', parts[5].strip())
-        error.set('message', parts[9].strip())
-        error.set('source', 'gplint')
+                file = SubElement(root, 'file')
+                file.set('name', file_name)
+                error = SubElement(file, 'error')
+                error.set('line', line.strip())
+                error.set('column', column.strip())
+                error.set('severity', severity.strip())
+                error.set('message', message.strip())
+                error.set('source', 'gplint')
 
 # Convertir a string con formato bonito
 xml_string = minidom.parseString(tostring(root)).toprettyxml(indent="   ")
@@ -45,4 +46,3 @@ xml_string = minidom.parseString(tostring(root)).toprettyxml(indent="   ")
 # Escribir el informe XML en un archivo
 with open('report.xml', 'w') as file:
     file.write(xml_string)
-
