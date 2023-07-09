@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 import re
 
-root = ET.Element('checkstyle', version="4.3")
+root = ET.ElementTree('checkstyle', version="4.3")
 
 with open('lint_output.txt', 'r') as f:
     file_elem = None
@@ -13,11 +13,11 @@ with open('lint_output.txt', 'r') as f:
             file_elem = ET.SubElement(root, 'file', name=line)
         elif re.search(r'\d+:\d+\s+error', line):
             # It's an error line
-            pattern = r'(?P<line>\d+):(?P<column>\d+)\s+(?P<severity>\w+)\s+(?P<message>.*)'
+            pattern = r'(?P<line_number>\d+):(?P<column_number>\d+)\s+(?P<severity>\w+)\s+(?P<message>.*)'
             match = re.match(pattern, line)
             if match:
                 data = match.groupdict()
-                ET.SubElement(file_elem, 'error', line=data['line'], column=data['column'], severity=data['severity'], message=data['message'], source="gplint")
+                ET.SubElement(file_elem, 'error', line=data['line_number'], column=data['column_number'], severity=data['severity'], message=data['message'], source="gplint")
         elif line.startswith("✖"):
             # It's a summary line
             pattern = r'✖\s+(?P<problems>\d+)\s+problems\s+\((?P<errors>\d+)\s+errors,\s+(?P<warnings>\d+)\s+warnings\)'
