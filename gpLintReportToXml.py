@@ -7,22 +7,23 @@ output_file = 'lint_output.txt'
 
 # Leer la salida de gplint desde el archivo
 with open(output_file, 'r') as file:
-    output = file.read()
+    output = file.readlines()
 
 # Crear un informe XML básico
 root = Element('checkstyle')
 root.set('version', '4.3')
 
 # Asumir que cada línea es un problema
-lines = output.split('\n')
-i = 0
-while i < len(lines):
-    file_path = lines[i].strip()
-    if file_path:
-        line_info = lines[i+1].strip().split()
+for line in output:
+    line = line.strip()
+    if line:
+        # Asumir que la línea tiene el formato "ruta_archivo linea:columna nivel mensaje"
+        parts = line.split('  ')
+        file_path = parts[0]
+        line_info = parts[1].split(':')
         line_number = line_info[0]
-        severity = line_info[1]
-        message = ' '.join(line_info[2:])
+        severity = line_info[1].strip()
+        message = ' '.join(parts[2:]).strip()
 
         file = SubElement(root, 'file')
         file.set('name', os.path.basename(file_path))
@@ -31,8 +32,6 @@ while i < len(lines):
         error.set('severity', severity)
         error.set('message', message)
         error.set('source', 'gplint')
-
-    i += 2
 
 # Convertir a string con formato bonito
 xml_string = minidom.parseString(tostring(root)).toprettyxml(indent="   ")
