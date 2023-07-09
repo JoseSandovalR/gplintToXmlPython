@@ -18,23 +18,27 @@ for line in output:
     line = line.strip()
     if line:
         # Asumir que la línea tiene el formato "ruta_archivo linea:columna nivel mensaje"
-        file_parts, line_column, severity, message = line.split('  ', maxsplit=3)
-        file_path = file_parts.split(' ')[0]
-        line_parts = line_column.split(':')
-        if len(line_parts) == 2:
-            line, column = line_parts
-        else:
-            line = line_parts[0]
-            column = '0'
+        parts = line.split(' ', maxsplit=3)
+        if len(parts) == 4:
+            file_location, line_column, severity, message = parts
+            file_parts = file_location.split(' ')
+            if len(file_parts) == 2:
+                file_path = file_parts[0].strip()
+                line_parts = line_column.split(':')
+                if len(line_parts) == 2:
+                    line, column = line_parts
+                else:
+                    line = line_parts[0]
+                    column = '0'
 
-        file = SubElement(root, 'file')
-        file.set('name', os.path.abspath(file_path))
-        error = SubElement(file, 'error')
-        error.set('line', line.strip())
-        error.set('column', column.strip())
-        error.set('severity', severity.strip())
-        error.set('message', message.strip())
-        error.set('source', 'gplint')
+                file = SubElement(root, 'file')
+                file.set('name', os.path.basename(file_path))
+                error = SubElement(file, 'error')
+                error.set('line', line.strip())
+                error.set('column', column.strip())
+                error.set('severity', severity.strip())
+                error.set('message', message.strip())
+                error.set('source', 'gplint')
 
 # Convertir a string con formato bonito
 xml_string = minidom.parseString(tostring(root)).toprettyxml(indent="   ")
