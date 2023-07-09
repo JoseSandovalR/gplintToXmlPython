@@ -31,8 +31,10 @@ def process_file(file_name):
                 line, column, message = process_line(lines[i])
 
         i += 1
+        if "problems" in lines[i]:
+            break
 
     tree = ET.ElementTree(root)
-    tree.write("report.xml", xml_declaration=True, encoding="utf-8")
+    tree.write("output.xml", xml_declaration=True, encoding="utf-8")
 
 process_file("lint_output.txt")
