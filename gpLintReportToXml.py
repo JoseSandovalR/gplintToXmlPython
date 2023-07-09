@@ -32,7 +32,7 @@ for line in output:
                     column = '0'
 
                 file = SubElement(root, 'file')
-                file.set('name', file_path)
+                file.set('name', os.path.abspath(file_path))
                 error = SubElement(file, 'error')
                 error.set('line', line.strip())
                 error.set('column', column.strip())
@@ -46,3 +46,4 @@ xml_string = minidom.parseString(tostring(root)).toprettyxml(indent="   ")
 # Escribir el informe XML en un archivo
 with open('report.xml', 'w') as file:
     file.write(xml_string)
+
