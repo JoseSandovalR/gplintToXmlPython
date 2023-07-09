@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 import re
 
-root = ET.ElementTree('checkstyle', version="4.3")
+root = ET.Element('checkstyle', version="4.3")
 
 with open('lint_output.txt', 'r') as f:
     file_elem = None
@@ -13,19 +13,13 @@ with open('lint_output.txt', 'r') as f:
             file_elem = ET.SubElement(root, 'file', name=line)
         elif re.search(r'\d+:\d+\s+error', line):
             # It's an error line
-            pattern = r'(?P<line_number>\d+):(?P<column_number>\d+)\s+(?P<severity>\w+)\s+(?P<message>.*)'
-            match = re.match(pattern, line)
-            if match:
-                data = match.groupdict()
-                ET.SubElement(file_elem, 'error', line=data['line_number'], column=data['column_number'], severity=data['severity'], message=data['message'], source="gplint")
+            line_number, column_number, severity, message = re.search(r'(\d+):(\d+)\s+(\w+)\s+(.*)', line).groups()
+            ET.SubElement(file_elem, 'error', line=line_number, column=column_number, severity=severity, message=message, source="gplint")
         elif line.startswith("✖"):
             # It's a summary line
-            pattern = r'✖\s+(?P<problems>\d+)\s+problems\s+\((?P<errors>\d+)\s+errors,\s+(?P<warnings>\d+)\s+warnings\)'
-            match = re.match(pattern, line)
-            if match:
-                data = match.groupdict()
-                file_elem = ET.SubElement(root, 'file', name="✖")
-                ET.SubElement(file_elem, 'error', line=data['problems'], column="0", severity="problems", message=f'({data["errors"]} errors, {data["warnings"]} warnings)', source="gplint")
+            problems, errors, warnings = re.search(r'✖ (\d+) problems \((\d+) errors, (\d+) warnings\)', line).groups()
+            file_elem = ET.SubElement(root, 'file', name="✖")
+            ET.SubElement(file_elem, 'error', line=problems, column="0", severity="problems", message=f'({errors} errors, {warnings} warnings)', source="gplint")
 
 tree = ET.ElementTree(root)
-tree.write('output.xml')
+tree.write('output.xml', xml_declaration=True, encoding='utf-8')
