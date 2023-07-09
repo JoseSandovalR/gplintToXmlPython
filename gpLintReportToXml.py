@@ -18,13 +18,12 @@ for line in output:
     line = line.strip()
     if line:
         # Asumir que la línea tiene el formato "ruta_archivo linea:columna nivel mensaje"
-        parts = line.split(' ', maxsplit=1)
-        if len(parts) == 2:
-            file_location, error_info = parts
+        parts = line.split(' ', maxsplit=2)
+        if len(parts) == 3:
+            file_location, line_column, message = parts
             file_parts = file_location.split(':')
             if len(file_parts) == 2:
-                file_path, line_column = file_parts
-                level, message = error_info.split(' ', maxsplit=1)
+                file_path, _ = file_parts
                 line, column = line_column.split(':')
 
                 file = SubElement(root, 'file')
@@ -32,7 +31,7 @@ for line in output:
                 error = SubElement(file, 'error')
                 error.set('line', line.strip())
                 error.set('column', column.strip())
-                error.set('severity', level.strip())
+                error.set('severity', 'error')
                 error.set('message', message.strip())
                 error.set('source', 'gplint')
 
@@ -42,3 +41,4 @@ xml_string = minidom.parseString(tostring(root)).toprettyxml(indent="   ")
 # Escribir el informe XML en un archivo
 with open('report.xml', 'w') as file:
     file.write(xml_string)
+
