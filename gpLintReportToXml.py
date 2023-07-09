@@ -32,7 +32,7 @@ for line in output:
                     column = '0'
 
                 file = SubElement(root, 'file')
-                file.set('name', os.path.basename(file_path))
+                file.set('name', file_path)
                 error = SubElement(file, 'error')
                 error.set('line', line.strip())
                 error.set('column', column.strip())
