@@ -1,25 +1,38 @@
 import xml.etree.ElementTree as ET
-import re
 
-root = ET.Element('checkstyle', version="4.3")
+def process_line(line):
+    line = line.strip()
+    parts = line.split("  ", 1)
+    if len(parts) == 2:
+        loc, message = parts
+        if ":" in loc:
+            line, column = loc.split(":")
+            return line.strip(), column.strip(), message.strip()
+    return None, None, None
 
-with open('lint_output.txt', 'r') as f:
-    file_elem = None
-    for line in f:
-        line = line.strip()  # Remove leading/trailing whitespaces
+def process_file(file_name):
+    root = ET.Element("checkstyle", version="4.3")
 
-        if line.startswith("/"):
-            # It's a file path line
-            file_elem = ET.SubElement(root, 'file', name=line)
-        elif re.search(r'\d+:\d+\s+error', line):
-            # It's an error line
-            line_number, column_number, severity, message = re.search(r'(\d+):(\d+)\s+(\w+)\s+(.*)', line).groups()
-            ET.SubElement(file_elem, 'error', line=line_number, column=column_number, severity=severity, message=message, source="gplint")
-        elif line.startswith("✖"):
-            # It's a summary line
-            problems, errors, warnings = re.search(r'✖ (\d+) problems \((\d+) errors, (\d+) warnings\)', line).groups()
-            file_elem = ET.SubElement(root, 'file', name="✖")
-            ET.SubElement(file_elem, 'error', line=problems, column="0", severity="problems", message=f'({errors} errors, {warnings} warnings)', source="gplint")
+    with open(file_name, "r") as f:
+        lines = f.readlines()
 
-tree = ET.ElementTree(root)
-tree.write('output.xml', xml_declaration=True, encoding='utf-8')
+    i = 0
+    while i < len(lines):
+        file_line = lines[i].strip()
+        if file_line.startswith("/"):
+            file_name = file_line
+            file_elem = ET.SubElement(root, "file", name=file_name)
+
+            i += 1
+            line, column, message = process_line(lines[i])
+            while line is not None:
+                ET.SubElement(file_elem, "error", line=line, column=column, severity="error", message=message, source="gplint")
+                i += 1
+                line, column, message = process_line(lines[i])
+
+        i += 1
+
+    tree = ET.ElementTree(root)
+    tree.write("report.xml", xml_declaration=True, encoding="utf-8")
+
+process_file("lint_output.txt")
