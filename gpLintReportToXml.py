@@ -1,5 +1,4 @@
 import os
-import re
 from xml.etree.ElementTree import Element, SubElement, tostring
 from xml.dom import minidom
 
@@ -10,30 +9,32 @@ output_file = 'lint_output.txt'
 with open(output_file, 'r') as file:
     output = file.readlines()
 
-# Expresión regular para analizar las líneas de error
-pattern = r'(?P<file_path>.+)\n\s+(?P<line>\d+:\d+)\s+(?P<severity>\w+)\s+(?P<message>.+)'
-
 # Crear un informe XML básico
 root = Element('checkstyle')
 root.set('version', '4.3')
 
 # Asumir que cada línea es un problema
 for line in output:
-    match = re.match(pattern, line)
-    if match:
-        file_path = match.group('file_path').strip()
-        line_info = match.group('line').split(':')
-        line_number = line_info[0]
-        severity = match.group('severity').strip()
-        message = match.group('message').strip()
+    line = line.strip()
+    if line:
+        # Asumir que la línea tiene el formato "ruta_archivo linea:columna nivel mensaje"
+        parts = line.split(' ', maxsplit=1)
+        if len(parts) == 2:
+            file_location, error_info = parts
+            file_parts = file_location.split(':')
+            if len(file_parts) == 2:
+                file_path, line_column = file_parts
+                level, message = error_info.split(' ', maxsplit=1)
+                line, column = line_column.split(':')
 
-        file = SubElement(root, 'file')
-        file.set('name', os.path.basename(file_path))
-        error = SubElement(file, 'error')
-        error.set('line', line_number)
-        error.set('severity', severity)
-        error.set('message', message)
-        error.set('source', 'gplint')
+                file = SubElement(root, 'file')
+                file.set('name', os.path.basename(file_path.strip()))
+                error = SubElement(file, 'error')
+                error.set('line', line.strip())
+                error.set('column', column.strip())
+                error.set('severity', level.strip())
+                error.set('message', message.strip())
+                error.set('source', 'gplint')
 
 # Convertir a string con formato bonito
 xml_string = minidom.parseString(tostring(root)).toprettyxml(indent="   ")
