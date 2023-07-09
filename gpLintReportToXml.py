@@ -14,20 +14,25 @@ root = Element('checkstyle')
 root.set('version', '4.3')
 
 # Asumir que cada línea es un problema
-for line in output.split('\n'):
-    line = line.strip()
-    if line:
-        # Asumir que la línea tiene el formato "ruta_archivo:linea:columna:nivel:mensaje"
-        parts = line.split(':', maxsplit=4)
-        if len(parts) >= 5:
-            file = SubElement(root, 'file')
-            file.set('name', os.path.basename(parts[0].strip()))
-            error = SubElement(file, 'error')
-            error.set('line', parts[1].strip())
-            error.set('column', parts[2].strip())
-            error.set('severity', parts[3].strip())
-            error.set('message', parts[4].strip())
-            error.set('source', 'gplint')
+lines = output.split('\n')
+i = 0
+while i < len(lines):
+    file_path = lines[i].strip()
+    if file_path:
+        line_info = lines[i+1].strip().split()
+        line_number = line_info[0]
+        severity = line_info[1]
+        message = ' '.join(line_info[2:])
+
+        file = SubElement(root, 'file')
+        file.set('name', os.path.basename(file_path))
+        error = SubElement(file, 'error')
+        error.set('line', line_number)
+        error.set('severity', severity)
+        error.set('message', message)
+        error.set('source', 'gplint')
+
+    i += 2
 
 # Convertir a string con formato bonito
 xml_string = minidom.parseString(tostring(root)).toprettyxml(indent="   ")
