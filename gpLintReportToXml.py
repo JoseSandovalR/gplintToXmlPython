@@ -4,11 +4,12 @@ def process_line(line):
     line = line.strip()
     parts = line.split("  ", 1)
     if len(parts) == 2:
-        loc, message = parts
+        loc, severity_message = parts
         if ":" in loc:
             line, column = loc.split(":")
-            return line.strip(), column.strip(), message.strip()
-    return None, None, None
+            severity, message = severity_message.split("error", 1)
+            return line.strip(), column.strip(), severity.strip(), message.strip()
+    return None, None, None, None
 
 def process_file(file_name):
     root = ET.Element("checkstyle", version="4.3")
@@ -24,11 +25,11 @@ def process_file(file_name):
             file_elem = ET.SubElement(root, "file", name=file_name)
 
             i += 1
-            line, column, message = process_line(lines[i])
+            line, column, severity, message = process_line(lines[i])
             while line is not None:
-                ET.SubElement(file_elem, "error", line=line, column=column, severity="error", message=message, source="gplint")
+                ET.SubElement(file_elem, "error", line=line, column=column, severity=severity, message=message, source="gplint")
                 i += 1
-                line, column, message = process_line(lines[i])
+                line, column, severity, message = process_line(lines[i])
 
         i += 1
         if "problems" in lines[i]:
