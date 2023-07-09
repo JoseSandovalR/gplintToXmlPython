@@ -7,7 +7,7 @@ output_file = 'lint_output.txt'
 
 # Leer la salida de gplint desde el archivo
 with open(output_file, 'r') as file:
-    output = file.readlines()
+    output = file.read()
 
 # Crear un informe XML básico
 root = Element('checkstyle')
@@ -32,5 +32,7 @@ for line in output.split('\n'):
 # Convertir a string con formato bonito
 xml_string = minidom.parseString(tostring(root)).toprettyxml(indent="   ")
 
-# Imprimir el informe XML
-print(xml_string)
+# Escribir el informe XML en un archivo
+with open('report.xml', 'w') as file:
+    file.write(xml_string)
+)
