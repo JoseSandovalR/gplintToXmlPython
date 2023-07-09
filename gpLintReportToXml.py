@@ -13,10 +13,6 @@ with open(output_file, 'r') as file:
 root = Element('checkstyle')
 root.set('version', '4.3')
 
-# Variables para almacenar la ruta del archivo y el número de línea
-file_path = ''
-line_number = ''
-
 # Iterar sobre las líneas del archivo
 for line in lines:
     line = line.strip()
@@ -28,16 +24,21 @@ for line in lines:
         file_path = line
         continue
 
-    # Asumir que la línea tiene el formato "linea:columna nivel mensaje"
+    # Asumir que la línea tiene el formato "espacio linea:columna nivel mensaje"
     parts = line.split(' ', maxsplit=3)
     if len(parts) == 4:
-        line_number, _, severity, message = parts
+        _, line_column, severity, message = parts
+        line_parts = line_column.split(':')
+        if len(line_parts) == 2:
+            line_number, column_number = line_parts
+        else:
+            line_number, column_number = '1', '0'
 
         file = SubElement(root, 'file')
-        file.set('name', os.path.basename(file_path))
+        file.set('name', file_path)
         error = SubElement(file, 'error')
         error.set('line', line_number.strip())
-        error.set('column', '0')
+        error.set('column', column_number.strip())
         error.set('severity', severity.strip())
         error.set('message', message.strip())
         error.set('source', 'gplint')
@@ -48,3 +49,4 @@ xml_string = minidom.parseString(tostring(root)).toprettyxml(indent="   ")
 # Escribir el informe XML en un archivo
 with open('report.xml', 'w') as file:
     file.write(xml_string)
+
