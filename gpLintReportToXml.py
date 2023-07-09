@@ -1,30 +1,31 @@
 import xml.etree.ElementTree as ET
-
-def read_blocks(file):
-    block = []
-    for line in file:
-        if line.strip():
-            block.append(line.strip())
-        elif block:
-            yield block
-            block = []
-    if block:
-        yield block
-
-with open('lint_output.txt', 'r') as f:
-    blocks = list(read_blocks(f))
+import re
 
 root = ET.Element('checkstyle', version="4.3")
 
-for block in blocks:
-    # procesamiento de bloques y obtención de los valores necesarios
-    file_name = block[0]
-    line_number = block[1]
-    severity = block[2]
-    message = block[3]
+with open('lint_output.txt', 'r') as f:
+    file_elem = None
+    for line in f:
+        line = line.strip()  # Remove leading/trailing whitespaces
 
-    file_elem = ET.SubElement(root, 'file', name=file_name)
-    error_elem = ET.SubElement(file_elem, 'error', line=line_number, column="0", severity=severity, message=message, source="gplint")
+        if line.startswith("/"):
+            # It's a file path line
+            file_elem = ET.SubElement(root, 'file', name=line)
+        elif re.search(r'\d+:\d+\s+error', line):
+            # It's an error line
+            pattern = r'(?P<line>\d+):(?P<column>\d+)\s+(?P<severity>\w+)\s+(?P<message>.*)'
+            match = re.match(pattern, line)
+            if match:
+                data = match.groupdict()
+                ET.SubElement(file_elem, 'error', line=data['line'], column=data['column'], severity=data['severity'], message=data['message'], source="gplint")
+        elif line.startswith("✖"):
+            # It's a summary line
+            pattern = r'✖\s+(?P<problems>\d+)\s+problems\s+\((?P<errors>\d+)\s+errors,\s+(?P<warnings>\d+)\s+warnings\)'
+            match = re.match(pattern, line)
+            if match:
+                data = match.groupdict()
+                file_elem = ET.SubElement(root, 'file', name="✖")
+                ET.SubElement(file_elem, 'error', line=data['problems'], column="0", severity="problems", message=f'({data["errors"]} errors, {data["warnings"]} warnings)', source="gplint")
 
 tree = ET.ElementTree(root)
 tree.write('output.xml')
