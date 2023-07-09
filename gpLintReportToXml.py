@@ -1,54 +1,48 @@
-import os
-from xml.etree.ElementTree import Element, SubElement, tostring
-from xml.dom import minidom
+import xml.etree.ElementTree as ET
+import re
 
-# Ruta del archivo de salida de gplint
-output_file = 'lint_output.txt'
+def parse_line(line):
+    split_line = line.split(' ', 3)
+    file_path = split_line[0]
+    line_col = split_line[1].split(':')
+    severity = split_line[2]
+    message = split_line[3].strip()
 
-# Leer la salida de gplint desde el archivo
-with open(output_file, 'r') as file:
-    output = file.readlines()
+    return file_path, line_col[0], line_col[1], severity, message
 
-# Crear un informe XML básico
-root = Element('checkstyle')
-root.set('version', '4.3')
+def main():
+    root = ET.Element('checkstyle')
+    root.set('version', '4.3')
 
-# Asumir que cada línea es un problema
-for line in output:
-    line = line.strip()
-    if line:
-        # Dividir la línea en partes: ruta_archivo, linea:columna, severidad, mensaje
-        parts = line.split(' ', maxsplit=1)
-        if len(parts) == 2:
-            file_location, error_info = parts
-            file_parts = file_location.split('/')
-            if len(file_parts) > 0:
-                file_name = file_parts[-1]
-                line_parts = error_info.split(' ')
-                if len(line_parts) >= 2:
-                    line_column = line_parts[0]
-                    severity = line_parts[1]
-                    message = ' '.join(line_parts[2:])
+    with open('lint_output.txt', 'r') as file:
+        lines = file.readlines()
+        for line in lines[:-1]:  # Ignoramos la última línea
+            file_path, line_num, col_num, severity, message = parse_line(line)
+            file_element = ET.SubElement(root, 'file')
+            file_element.set('name', file_path)
 
-                    line_parts = line_column.split(':')
-                    if len(line_parts) == 2:
-                        line, column = line_parts
-                    else:
-                        line = line_parts[0]
-                        column = '0'
+            error_element = ET.SubElement(file_element, 'error')
+            error_element.set('line', line_num)
+            error_element.set('column', col_num)
+            error_element.set('severity', severity)
+            error_element.set('message', message)
+            error_element.set('source', 'gplint')
 
-                    file = SubElement(root, 'file')
-                    file.set('name', file_location)
-                    error = SubElement(file, 'error')
-                    error.set('line', line.strip())
-                    error.set('column', column.strip())
-                    error.set('severity', severity.strip())
-                    error.set('message', message.strip())
-                    error.set('source', 'gplint')
+        # Añadimos el total de errores y advertencias
+        total_errors = re.findall('\d+', lines[-1])
+        file_element = ET.SubElement(root, 'file')
+        file_element.set('name', '✖')
 
-# Convertir a string con formato bonito
-xml_string = minidom.parseString(tostring(root)).toprettyxml(indent="   ")
+        error_element = ET.SubElement(file_element, 'error')
+        error_element.set('line', str(len(lines) - 1))
+        error_element.set('column', '0')
+        error_element.set('severity', 'problems')
+        error_element.set('message', f'({total_errors[0]} errors, {total_errors[1]} warnings)')
+        error_element.set('source', 'gplint')
 
-# Escribir el informe XML en un archivo
-with open('report.xml', 'w') as file:
-    file.write(xml_string)
+    # Escribimos el XML en un archivo
+    tree = ET.ElementTree(root)
+    tree.write('report.xml')
+
+if __name__ == '__main__':
+    main()
