@@ -26,10 +26,11 @@ for line in output:
                 file_path = file_parts[0].strip()
                 line_parts = line_column.split(':')
                 if len(line_parts) == 2:
-                    line, column = line_parts
-                else:
                     line = line_parts[0]
-                    column = '0'
+                    column = line_parts[1]
+                else:
+                    line = "1"
+                    column = "0"
 
                 file = SubElement(root, 'file')
                 file.set('name', os.path.basename(file_path))
