@@ -1,42 +1,44 @@
 import xml.etree.ElementTree as ET
-import sys
 
-def parse_error_line(line):
-    split_line = line.split(' ', 4)
-    line_col = split_line[0].split(':')
+def process_line(line):
+    if line.startswith('/'):
+        return 'file', line.strip()
+    elif line.startswith('✖'):
+        return 'summary', line.strip()
+    elif line:
+        parts = line.strip().split('  ', maxsplit=2)
+        loc, severity, message = parts[0], parts[1], parts[2]
+        line_num, col_num = map(int, loc.split(':'))
+        return 'error', (line_num, col_num, severity, message)
+    else:
+        return 'empty', None
 
-    if len(line_col) < 2:
-        # La línea no tiene el formato esperado, retorna valores predeterminados.
-        return "0", "0", "error", line
+def process_file(filename):
+    root = ET.Element('checkstyle', version="4.3")
+    current_file = None
+    with open(filename, 'r') as f:
+        for line in f:
+            line_type, content = process_line(line)
+            if line_type == 'file':
+                current_file = ET.SubElement(root, 'file', name=content)
+            elif line_type == 'error':
+                ET.SubElement(current_file, 'error',
+                              line=str(content[0]),
+                              column=str(content[1]),
+                              severity=content[2],
+                              message=content[3],
+                              source="gplint")
+            elif line_type == 'summary':
+                summary_file = ET.SubElement(root, 'file', name="✖")
+                error_line, error_column = content.count('error'), content.count('warning')
+                ET.SubElement(summary_file, 'error',
+                              line=str(error_line),
+                              column=str(error_column),
+                              severity='problems',
+                              message=content,
+                              source="gplint")
+    tree = ET.ElementTree(root)
+    tree.write('output.xml', encoding='utf-8', xml_declaration=True)
 
-    severity = split_line[1]
-    message = " ".join(split_line[2:]).strip()  # Une todo después de la severidad como mensaje
-    return line_col[0], line_col[1], severity, message
-
-def create_error_element(line):
-    line_num, col_num, severity, message = parse_error_line(line)
-    error = ET.Element("error")
-    error.set("line", line_num)
-    error.set("column", col_num)
-    error.set("severity", severity)
-    error.set("message", message)
-    error.set("source", "gplint")
-    return error
-
-def main():
-    checkstyle = ET.Element("checkstyle")
-    checkstyle.set("version", "4.3")
-
-    with open(sys.argv[1], "r") as file:
-        lines = file.readlines()
-        for i in range(0, len(lines), 2):
-            file_elem = ET.SubElement(checkstyle, "file")
-            file_elem.set("name", lines[i].strip())
-            error_elem = create_error_element(lines[i+1])
-            file_elem.append(error_elem)
-
-    tree = ET.ElementTree(checkstyle)
-    tree.write("report.xml")
-
-if __name__ == "__main__":
-    main()
+# Run the function
+process_file('lint_output.txt')
