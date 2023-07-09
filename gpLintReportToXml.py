@@ -14,9 +14,7 @@ root = Element('checkstyle')
 root.set('version', '4.3')
 
 # Variables para guardar información del archivo actual
-file_path = ''
-line_number = ''
-column_number = ''
+current_file = None
 
 # Iterar sobre las líneas del archivo
 for line in lines:
@@ -24,29 +22,21 @@ for line in lines:
     if not line:
         continue
 
-    # Si la línea contiene una ruta de archivo, guardarla
-    if os.path.isfile(line):
-        file_path = line
+    # Si la línea comienza con "<file name=", crear un nuevo elemento "file"
+    if line.startswith("<file name="):
+        file_name = line.split('"')[1]
+        current_file = SubElement(root, 'file')
+        current_file.set('name', file_name)
         continue
 
-    # Asumir que la línea tiene el formato "linea:columna nivel mensaje"
-    parts = line.split(' ', maxsplit=3)
-    if len(parts) == 4:
-        line_column, severity, message = parts
-        line_parts = line_column.split(':')
-        if len(line_parts) == 2:
-            line_number, column_number = line_parts
-        else:
-            line_number = '1'
-            column_number = '0'
-
-        file = SubElement(root, 'file')
-        file.set('name', file_path)
-        error = SubElement(file, 'error')
-        error.set('line', line_number.strip())
-        error.set('column', column_number.strip())
-        error.set('severity', severity.strip())
-        error.set('message', message.strip())
+    # Asumir que la línea tiene el formato "<error line=" línea " column=" columna " severity=" nivel " message=" mensaje " source="gplint"/>"
+    parts = line.split('"')
+    if len(parts) == 11:
+        error = SubElement(current_file, 'error')
+        error.set('line', parts[3].strip())
+        error.set('column', parts[7].strip())
+        error.set('severity', parts[5].strip())
+        error.set('message', parts[9].strip())
         error.set('source', 'gplint')
 
 # Convertir a string con formato bonito
@@ -55,3 +45,4 @@ xml_string = minidom.parseString(tostring(root)).toprettyxml(indent="   ")
 # Escribir el informe XML en un archivo
 with open('report.xml', 'w') as file:
     file.write(xml_string)
+
