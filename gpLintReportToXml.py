@@ -13,23 +13,24 @@ with open(output_file, 'r') as file:
 root = Element('checkstyle')
 root.set('version', '4.3')
 
-# Asumir que cada línea de la salida es un problema
-for line in output:
-    # Asumir que la salida tiene el formato "ruta_archivo:linea:columna:nivel:mensaje"
-    parts = line.strip().split(':', maxsplit=4)
-    if len(parts) >= 5:
-        file = SubElement(root, 'file')
-        file.set('name', os.path.basename(parts[0].strip()))
-        error = SubElement(file, 'error')
-        error.set('line', parts[1].strip())
-        error.set('column', parts[2].strip())
-        error.set('severity', parts[3].strip())
-        error.set('message', parts[4].strip())
-        error.set('source', 'gplint')
+# Asumir que cada línea es un problema
+for line in output.split('\n'):
+    line = line.strip()
+    if line:
+        # Asumir que la línea tiene el formato "ruta_archivo:linea:columna:nivel:mensaje"
+        parts = line.split(':', maxsplit=4)
+        if len(parts) >= 5:
+            file = SubElement(root, 'file')
+            file.set('name', os.path.basename(parts[0].strip()))
+            error = SubElement(file, 'error')
+            error.set('line', parts[1].strip())
+            error.set('column', parts[2].strip())
+            error.set('severity', parts[3].strip())
+            error.set('message', parts[4].strip())
+            error.set('source', 'gplint')
 
 # Convertir a string con formato bonito
 xml_string = minidom.parseString(tostring(root)).toprettyxml(indent="   ")
 
-# Escribir el informe XML en un archivo
-with open('report.xml', 'w') as file:
-    file.write(xml_string)
+# Imprimir el informe XML
+print(xml_string)
