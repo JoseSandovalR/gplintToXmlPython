@@ -24,14 +24,18 @@ for line in output:
             file_parts = file_location.split(':')
             if len(file_parts) == 2:
                 file_path = file_parts[0].strip()
-                line_number = line_parts[0].strip()
-                column = line_parts[1].strip()
+                line_parts = line_column.split(':')
+                if len(line_parts) == 2:
+                    line, column = line_parts
+                else:
+                    line = line_parts[0]
+                    column = '0'
 
                 file = SubElement(root, 'file')
-                file.set('name', file_path)
+                file.set('name', os.path.basename(file_path))
                 error = SubElement(file, 'error')
-                error.set('line', line_number)
-                error.set('column', column)
+                error.set('line', line.strip())
+                error.set('column', column.strip())
                 error.set('severity', severity.strip())
                 error.set('message', message.strip())
                 error.set('source', 'gplint')
