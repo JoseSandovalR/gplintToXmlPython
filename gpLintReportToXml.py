@@ -23,7 +23,7 @@ for line in output:
             file_location, line_column, severity, message = parts
             file_parts = file_location.split(':')
             if len(file_parts) == 2:
-                file_path = file_parts[0].strip()
+                file_path = ":".join(file_parts[:-1]).strip()
                 line_parts = line_column.split(':')
                 if len(line_parts) == 2:
                     line, column = line_parts
