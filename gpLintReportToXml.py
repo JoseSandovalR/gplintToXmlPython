@@ -24,19 +24,14 @@ for line in output:
             file_parts = file_location.split(':')
             if len(file_parts) == 2:
                 file_path = file_parts[0].strip()
-                line_parts = line_column.split(':')
-                if len(line_parts) == 2:
-                    line = line_parts[0]
-                    column = line_parts[1]
-                else:
-                    line = "1"
-                    column = "0"
+                line_number = line_parts[0].strip()
+                column = line_parts[1].strip()
 
                 file = SubElement(root, 'file')
-                file.set('name', file_path)  # Corregido: utilizar file_path directamente
+                file.set('name', file_path)
                 error = SubElement(file, 'error')
-                error.set('line', line.strip())
-                error.set('column', column.strip())
+                error.set('line', line_number)
+                error.set('column', column)
                 error.set('severity', severity.strip())
                 error.set('message', message.strip())
                 error.set('source', 'gplint')
@@ -47,4 +42,3 @@ xml_string = minidom.parseString(tostring(root)).toprettyxml(indent="   ")
 # Escribir el informe XML en un archivo
 with open('report.xml', 'w') as file:
     file.write(xml_string)
-
