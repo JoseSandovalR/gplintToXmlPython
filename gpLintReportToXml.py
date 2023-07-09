@@ -7,38 +7,43 @@ output_file = 'lint_output.txt'
 
 # Leer la salida de gplint desde el archivo
 with open(output_file, 'r') as file:
-    output = file.readlines()
+    lines = file.readlines()
 
 # Crear un informe XML básico
 root = Element('checkstyle')
 root.set('version', '4.3')
 
-# Asumir que cada línea es un problema
-for line in output:
+# Iterar sobre las líneas del archivo
+file_path = ''
+for line in lines:
     line = line.strip()
-    if line:
-        # Asumir que la línea tiene el formato "ruta_archivo linea:columna nivel mensaje"
-        parts = line.split(' ', maxsplit=3)
-        if len(parts) == 4:
-            file_location, line_column, severity, message = parts
-            file_parts = file_location.split(':')
-            if len(file_parts) == 2:
-                file_path = file_parts[0].strip()
-                line_parts = line_column.split(':')
-                if len(line_parts) == 2:
-                    line, column = line_parts
-                else:
-                    line = line_parts[0]
-                    column = '0'
+    if not line:
+        continue
 
-                file = SubElement(root, 'file')
-                file.set('name', os.path.basename(file_path))
-                error = SubElement(file, 'error')
-                error.set('line', line.strip())
-                error.set('column', column.strip())
-                error.set('severity', severity.strip())
-                error.set('message', message.strip())
-                error.set('source', 'gplint')
+    # Si la línea es una ruta de archivo, guardarla
+    if os.path.isfile(line):
+        file_path = line
+        continue
+
+    # Asumir que la línea tiene el formato "linea:columna nivel mensaje"
+    parts = line.split(' ', maxsplit=3)
+    if len(parts) == 4:
+        line_column, severity, message = parts
+        line_parts = line_column.split(':')
+        if len(line_parts) == 2:
+            line, column = line_parts
+        else:
+            line = line_parts[0]
+            column = '0'
+
+        file = SubElement(root, 'file')
+        file.set('name', os.path.basename(file_path))
+        error = SubElement(file, 'error')
+        error.set('line', line.strip())
+        error.set('column', column.strip())
+        error.set('severity', severity.strip())
+        error.set('message', message.strip())
+        error.set('source', 'gplint')
 
 # Convertir a string con formato bonito
 xml_string = minidom.parseString(tostring(root)).toprettyxml(indent="   ")
