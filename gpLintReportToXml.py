@@ -44,3 +44,7 @@ def process_file(file_name):
 
 process_file("lint_output.txt")
 
+<<<<<<< HEAD
+=======
+process_file("lint_output.txt")
+>>>>>>> parent of 74d9ddb (aakskjsakas)
