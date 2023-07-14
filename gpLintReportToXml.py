@@ -10,9 +10,8 @@ def process_file(file_name):
     for line in lines:
         line = line.strip()
         if line.startswith("/"):
-            if file_elem is not None:
-                root.append(file_elem)
-            file_elem = ET.Element("file", name=line)
+            file_name = line
+            file_elem = ET.SubElement(root, "file", name=file_name)
         elif line.startswith("✖"):
             problems_line = line.split(" ")[1:]
             problems_count = problems_line[0]
@@ -30,20 +29,18 @@ def process_file(file_name):
             root.set("fixablewarnings", "")
             root.set("fixable", "")
             root.set("configlocation", "")
-
-            if file_elem is not None:
-                root.append(file_elem)
-            break
+        elif line.startswith("   ") and "error" in line:
+            parts = line.split("  ")
+            loc = parts[0].strip()
+            message = " ".join(parts[1:])
+            line, column = loc.split(":")
+            error_elem = ET.SubElement(file_elem, "error", line=line.strip(), column=column.strip(), severity="error", message=message.strip(), source="gplint")
         else:
-            parts = line.split("  ", 1)
-            if len(parts) == 2:
-                loc, message = parts
-                if ":" in loc:
-                    line, column = loc.split(":")
-                    error_elem = ET.Element("error", line=line.strip(), column=column.strip(), severity="error", message=message.strip(), source="gplint")
-                    file_elem.append(error_elem)
+            continue
 
     tree = ET.ElementTree(root)
-    tree.write("output.xml", xml_declaration=True, encoding="utf-8")
+    output_file = file_name.replace(".txt", ".xml")
+    tree.write(output_file, xml_declaration=True, encoding="utf-8")
 
 process_file("lint_output.txt")
+
