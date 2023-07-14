@@ -1,15 +1,4 @@
-
 import xml.etree.ElementTree as ET
-
-def process_line(line):
-    line = line.strip()
-    parts = line.split("  ", 1)
-    if len(parts) == 2:
-        loc, message = parts
-        if ":" in loc:
-            line, column = loc.split(":")
-            return line.strip(), column.strip(), message.strip()
-    return None, None, None
 
 def process_file(file_name):
     root = ET.Element("checkstyle", version="4.3")
@@ -17,24 +6,42 @@ def process_file(file_name):
     with open(file_name, "r") as f:
         lines = f.readlines()
 
-    i = 0
-    while i < len(lines):
-        file_line = lines[i].strip()
-        if file_line.startswith("/"):
-            file_name = file_line
-            file_elem = ET.SubElement(root, "file", name=file_name)
+    file_elem = None
+    for line in lines:
+        line = line.strip()
+        if line.startswith("/"):
+            if file_elem is not None:
+                root.append(file_elem)
+            file_elem = ET.Element("file", name=line)
+        elif line.startswith("✖"):
+            problems_line = line.split(" ")[1:]
+            problems_count = problems_line[0]
+            problems_message = " ".join(problems_line[1:])
+            root.set("errors", problems_count)
+            root.set("warnings", "0")
+            root.set("version", "4.3")
+            root.set("timestamp", "")
+            root.set("severity", "")
+            root.set("name", "")
+            root.set("totalerrors", problems_count)
+            root.set("totalwarnings", "0")
+            root.set("totalfixes", "")
+            root.set("fixableerrors", "")
+            root.set("fixablewarnings", "")
+            root.set("fixable", "")
+            root.set("configlocation", "")
 
-            i += 1
-            while i < len(lines):
-                line, column, message = process_line(lines[i])
-                if line is not None:
-                    ET.SubElement(file_elem, "error", line=line, column=column, severity="error", message=message, source="gplint")
-                else:
-                    if "✖" in lines[i]:
-                        break
-                i += 1
-
-        i += 1
+            if file_elem is not None:
+                root.append(file_elem)
+            break
+        else:
+            parts = line.split("  ", 1)
+            if len(parts) == 2:
+                loc, message = parts
+                if ":" in loc:
+                    line, column = loc.split(":")
+                    error_elem = ET.Element("error", line=line.strip(), column=column.strip(), severity="error", message=message.strip(), source="gplint")
+                    file_elem.append(error_elem)
 
     tree = ET.ElementTree(root)
     tree.write("output.xml", xml_declaration=True, encoding="utf-8")
