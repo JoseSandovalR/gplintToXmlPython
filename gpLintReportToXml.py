@@ -24,17 +24,19 @@ def process_file(file_name):
             file_elem = ET.SubElement(root, "file", name=file_name)
 
             i += 1
-            line, column, message = process_line(lines[i])
-            while line is not None:
-                ET.SubElement(file_elem, "error", line=line, column=column, severity="error", message=message, source="gplint")
-                i += 1
+            while i < len(lines):
                 line, column, message = process_line(lines[i])
+                if line is not None:
+                    ET.SubElement(file_elem, "error", line=line, column=column, severity="error", message=message, source="gplint")
+                else:
+                    if "✖" in lines[i]:
+                        break
+                i += 1
 
         i += 1
-        if "problems" in lines[i]:
-            break
 
     tree = ET.ElementTree(root)
     tree.write("output.xml", xml_declaration=True, encoding="utf-8")
 
 process_file("lint_output.txt")
+
