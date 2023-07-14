@@ -39,4 +39,3 @@ def process_file(file_name):
     tree.write("output.xml", xml_declaration=True, encoding="utf-8")
 
 process_file("lint_output.txt")
-
